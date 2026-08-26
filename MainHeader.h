@@ -8,11 +8,19 @@ namespace flag{
     inline constexpr std::uint8_t STEERING_ANGLE {0b0000'0010};
     inline constexpr std::uint8_t BRAKE_CHECK {0b0000'0100};
     inline constexpr std::uint8_t LAUNCH_CTRL {0b0000'1000};
+
+    inline constexpr std::uint8_t ENGINE_FAILURE {0b0001'0000};
+}
+
+namespace error{
+    inline constexpr std::uint8_t CHANGE_GEAR {0b0000'0001};
+    inline constexpr std::uint8_t SPEED_FAILURE {0b0000'0010};
 }
 
 namespace data{
 
     inline std::uint8_t ECU_REGISTER {0b0000'0000};
+    inline std::uint8_t ECU_FAIL_REGISTER{0b0000'0000};
 
     struct package{
         int RPM;
@@ -21,6 +29,10 @@ namespace data{
         int targetspeed;
         double sensorspeed;
         std::string recommendation;
+        char changedGear;
+        int rolledGearshiftFailureChance;
+        int rolledSpeedFailureChance;
+        double PackageVehicleHealth;
     };
 
     struct input{
@@ -28,7 +40,8 @@ namespace data{
         double steeringAngle;
         bool brakecheck;
         int tickAmount;
-        double vehicleHealth; // idea; have a chance depending on vehicle health to have a critical failure during run - implement whenever i feel like it. have it be inputted in the input frame with the rest of general-vehicle configs
+        double vehicleHealth;
+        double roadCoefficient; // use this somewhere
     };
 
     struct drivetrainModel{
@@ -50,14 +63,16 @@ namespace data{
     };
 }
 
-data::package Drivetrain(data::package& data);
+data::package Drivetrain(data::package& data, data::drivetrainModel drive, data::input input);
 data::input InputFrame(data::input& input);
 data::input FlagCheck(data::input& convert, data::drivetrainModel& drive, std::string_view VehicleName);
-void OutputFrame(data::package& data, int tick, data::input& input, std::string_view projectVer);
+void OutputFrame(data::package& data, int tick, data::input& input, std::string_view projectVer, data::drivetrainModel drive);
+data::package AssignHealth(data::package& data, data::input input);
 int drivetrainInputFrame();
 data::drivetrainModel ModelSelectionCheck(int selected,data::drivetrainModel& drive);
 std::string modelName(data::drivetrainModel drive);
 static int tick{0};
 void EndStatistics(int tick);
+
 
 

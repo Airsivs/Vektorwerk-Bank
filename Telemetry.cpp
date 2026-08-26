@@ -6,6 +6,7 @@
 #include <bitset>
 #include <chrono>
 #include <iomanip>
+#include <random>
 
 namespace{
     constexpr int increaseG1{1000};
@@ -39,10 +40,12 @@ namespace modelData{
         constexpr int turboGain{180};
         // -------------------------
         bool turbo = true;
-        constexpr double tireCircumference{20}; //cm
+        constexpr double tireCircumference{200}; //cm
         constexpr double finalDriveRatio{3.08};
         constexpr int ModelID{1};
     }
+
+
 
     namespace bmw_M50i4{
         constexpr double ratioG1{4.06};
@@ -52,14 +55,14 @@ namespace modelData{
         constexpr double ratioG5{0.9};
         // -------------------------
         constexpr int increaseG1{1000};
-        constexpr int increaseG2{600};
+        constexpr int increaseG2{3000}; // 600
         constexpr int increaseG3{300};
         constexpr int increaseG4{200};
         constexpr int increaseG5{150};
         constexpr int turboGain{180};
         // -------------------------
         bool turbo = true;
-        constexpr double tireCircumference{20}; //cm
+        constexpr double tireCircumference{200}; //cm
         constexpr double finalDriveRatio{3.08};
         constexpr int ModelID{2};
     }
@@ -159,6 +162,8 @@ data::input FlagCheck(data::input& convert, data::drivetrainModel& drive, std::s
     cout << "[COOLANT TEMP]:   " << convert.coolantTemp << " C" << '\n';
     cout << "[STEERING ANGLE]: " << convert.steeringAngle << " deg" << '\n';
     cout << "[BRAKE SAFETY]:   " << std::boolalpha << convert.brakecheck << '\n';
+    cout << "[ROAD COEFFICIENT]: " << convert.roadCoefficient << '\n';
+    cout << "[VEHICLE HEALTH]: " << convert.vehicleHealth << '\n';
     cout << '\n';
 
     cout << "[SELECTED VEHICLE TYPE]: " << VehicleName << '\n';
@@ -167,7 +172,8 @@ data::input FlagCheck(data::input& convert, data::drivetrainModel& drive, std::s
     constexpr std::uint8_t requiredFlags = flag::COOLANT_TEMP | flag::STEERING_ANGLE | flag::BRAKE_CHECK;
     if ((data::ECU_REGISTER & requiredFlags) == requiredFlags) {
         data::ECU_REGISTER |= flag::LAUNCH_CTRL;
-    }                                                               // BUG HERE; ALWAYS READY NO MATTER WHAT (lol)
+        cout << "[LAUNCH CONTROL]: READY - STARTING SIMULATION!";
+    }                                                               
     else{
         cout << "[LAUNCH CONTROL]: NOT READY - CANCELLING SIMULATION!"; 
     }
@@ -183,53 +189,130 @@ data::input FlagCheck(data::input& convert, data::drivetrainModel& drive, std::s
 
 }
 
-data::package Drivetrain(data::package& data){
+int SpeedFailureChance(const data::input& input) {
+
+        if (input.roadCoefficient >= 0.70){
+            if (input.vehicleHealth >= 80)      { return 2; }
+            if (input.vehicleHealth >= 60)      { return 3; }
+            if (input.vehicleHealth >= 40)      { return 7; }
+            if (input.vehicleHealth >= 20)      { return 15; }
+        }
+        else {
+            if (input.vehicleHealth >= 80)      { return 2; }
+            if (input.vehicleHealth >= 60)      { return 5; }
+            if (input.vehicleHealth >= 40)      { return 7; }
+            if (input.vehicleHealth >= 20)      { return 15; }
+        }
+
+        return 50;
+}
+
+int GearshiftFailureChance(const data::input& input) {
+
+        if (input.vehicleHealth >= 80)      { return 2; }
+        if (input.vehicleHealth >= 60)      { return 5; }
+        if (input.vehicleHealth >= 40)      { return 7; }
+        if (input.vehicleHealth >= 20)      { return 15; }
+        return 50; 
+
+}
+
+data::package AssignHealth(data::package& data, data::input input){
+    data.PackageVehicleHealth = input.vehicleHealth;
+    return data;
+}
+
+data::package Drivetrain(data::package& data, data::drivetrainModel drive, data::input input){
 
     int realRPM;
+    data.changedGear = ' ';
+    data.rolledGearshiftFailureChance = GearshiftFailureChance(input);
+    double activeGearRatio;
+
+    if(!(data::ECU_REGISTER & flag::ENGINE_FAILURE)){
 
     switch(data.gear){
         case 1:
-            realRPM = data.RPM + increaseG1 + turboGain;
-            data.gearRatio = gearRatioG1;
+            realRPM = data.RPM + drive.gain1;
+            data.gearRatio = drive.gearRatio1;
             break;
         case 2:
-            realRPM = data.RPM + increaseG2 + turboGain;
-            data.gearRatio = gearRatioG2;
+            realRPM = data.RPM + drive.gain2;
+            data.gearRatio = drive.gearRatio2;
             break;
         case 3:
-            realRPM = data.RPM + increaseG3 + turboGain;
-            data.gearRatio = gearRatioG3;
+            realRPM = data.RPM + drive.gain3;
+            data.gearRatio = drive.gearRatio3;
             break;
         case 4:
-            realRPM = data.RPM + increaseG4 + turboGain;
-            data.gearRatio = gearRatioG4;
+            realRPM = data.RPM + drive.gain4;
+            data.gearRatio = drive.gearRatio4;
             break;
         default:
-            realRPM = data.RPM + increaseG5 + turboGain;
-            data.gearRatio = gearRatioG5;
+            realRPM = data.RPM + drive.gain5;
+            data.gearRatio = drive.gearRatio5;
             break;
     }
 
+    if (drive.turbo == true){
+        realRPM += drive.turboAmount;
+    }
+
+}
+
     data.RPM = realRPM;
 
-    if (data.RPM < 6000 | data.RPM > 2000){
+    if (data.RPM < 6000 && data.RPM > 2000){
         data.recommendation = "OPTIMAL";
     }
     if (data.RPM > 6000){
         data.recommendation = "UP-SHIFT";
     }
     if (data.RPM < 2000){
-        data.recommendation = "DOWNSHIFT"; // fixed??
+        data.recommendation = "DOWNSHIFT";
     }
 
-    if (data.RPM > 7000 & data.gear <=6){
+    if (data.RPM > 7000 && data.gear <=6){
         data.RPM = 2400;
         ++data.gear;
+
+        data.changedGear = 'X';
+
+        static std::mt19937 mt{ std::random_device{}() };
+        std::uniform_int_distribution<int> roll(1, 100);
+
+        if (roll(mt) <= GearshiftFailureChance(input)){
+            data::ECU_REGISTER |= flag::ENGINE_FAILURE;
+        }
     }
-    
-    
+
+    static std::mt19937 mt{ std::random_device{}() };
+    std::uniform_int_distribution<int> roll(1, 100);
+
+    if (roll(mt) <= SpeedFailureChance(input)){
+        data::ECU_REGISTER |= flag::ENGINE_FAILURE;
+    }
+
+    if (data::ECU_REGISTER & flag::ENGINE_FAILURE){
+        data.RPM -= 500;
+        data.PackageVehicleHealth -= 20;
+    }
+
+    double totalGearRatio = data.gearRatio * drive.finadriveRatio;
+
+    if(totalGearRatio > 0.0){
+        double wheelRPM = data.RPM / totalGearRatio;
+        data.sensorspeed = wheelRPM*drive.tireCircumference*0.0006;
+    }
+    else{
+        data.sensorspeed = 0.0;
+    }
+
+    data.targetspeed = static_cast<int>(data.sensorspeed)+1;
 
     return data;
+
+
 
 }
 

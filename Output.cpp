@@ -20,6 +20,14 @@ namespace check{
         }
         else{return "FALSE";}
     }
+
+    char CheckFailure(std::uint8_t flag, std::uint8_t ecuRegister){
+
+        if (flag & ecuRegister){
+            return 'X';
+        }
+        else{return ' ';} 
+    }
 }
 
 int drivetrainInputFrame(){
@@ -61,6 +69,12 @@ data::input InputFrame(data::input& input){
     
     cout << "Coolant temp (> 70.0 C):   ";
     cin >> input.coolantTemp;
+
+    cout << "Vehicle Health (Preferable above 80%):   ";
+    cin >> input.vehicleHealth;
+
+    cout << "Road coefficient (1-0.5 range):   ";
+    cin >> input.roadCoefficient;
     
     cout << "Steering angle (~0.0 deg): ";
     cin >> input.steeringAngle;
@@ -87,7 +101,18 @@ bool CheckDirect(double a,double b){
     }
 }
 
-void OutputFrame(data::package& data, int tick, data::input& input, std::string_view projectVer){
+std::string FailureCheck(){
+    if (data::ECU_FAIL_REGISTER && error::CHANGE_GEAR){
+        return "CHANGED GEAR FAILURE [ERROR 1]";
+    }
+    else if (data::ECU_FAIL_REGISTER && error::SPEED_FAILURE){
+        return "UNKNOWN [ERROR 2]";
+    }
+
+    return "NO ERROR";
+}
+
+void OutputFrame(data::package& data, int tick, data::input& input, std::string_view projectVer, data::drivetrainModel drive){
     using std::cout;
 
     cout << "===================VEKTORWERK TELEMETRY [TICK #" << tick << "]===================" << '\n';
@@ -104,12 +129,22 @@ void OutputFrame(data::package& data, int tick, data::input& input, std::string_
     cout << "- Brake safety check:          " << check::CheckFlag(flag::BRAKE_CHECK, data::ECU_REGISTER) << '\n';
     cout << "-> LAUNCH CONTROL STATUS:      " << check::CheckFlag(flag::LAUNCH_CTRL, data::ECU_REGISTER) <<  '\n';
 
+    cout << '\n';
+    cout << "[FAILURE]" << '\n';
+    cout << "- ENGINE FAULURE: [" << check::CheckFailure(flag::ENGINE_FAILURE, data::ECU_REGISTER) << "]\n";
+    cout << "- FAILURE REASON: " << FailureCheck() << '\n';
+
     if(true){
 
         cout << '\n';
 
         cout << "[DEBUG]" << '\n';
         cout << "-- GEAR RATIO: " << data.gearRatio << '\n';
+        cout << "-- MODEL ID: " << drive.modelID << '\n';
+        cout << "-- MODEL NAME: " << modelName(drive) << '\n';
+        cout << "-- TURBO GAIN: " << drive.turboAmount << '\n';
+        cout << "-- CHANGED GEAR: [" << data.changedGear << "]\n";
+        cout << "--FAILURE CHANCE: " << data.rolledGearshiftFailureChance + data.rolledSpeedFailureChance << "% | BEGINNING VEHICLE HEALTH: " << input.vehicleHealth <<"% | PACKAGE VEHICLE HEALTH: " << data.PackageVehicleHealth << "%" <<'\n'; 
     }
 
     cout << '\n';
