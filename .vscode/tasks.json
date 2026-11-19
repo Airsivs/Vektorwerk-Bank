@@ -2,18 +2,31 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "type": "cppbuild",
+            "type": "shell",
             "label": "C/C++: g++.exe build active file",
-            "command": "C:\\msys64\\ucrt64\\bin\\g++.exe",
+            "command": "g++",
             "args": [
-            "-fdiagnostics-color=always",
-            "-g",
-            "S:\\C++\\Learning\\*.cpp",
-            "-o",
-            "S:\\C++\\Learning\\vektorwerk.exe"
+                "-g",
+                "program.cpp",
+                "Backend.cpp",
+                "Frontend.cpp",
+                "imgui/imgui.cpp",
+                "imgui/imgui_demo.cpp",
+                "imgui/imgui_draw.cpp",
+                "imgui/imgui_tables.cpp",
+                "imgui/imgui_widgets.cpp",
+                "imgui/backends/imgui_impl_glfw.cpp",
+                "imgui/backends/imgui_impl_opengl3.cpp",
+                "-Iimgui",
+                "-Iimgui/backends",
+                "-o",
+                "${workspaceFolder}\\BankingApp.exe",
+                "-lglfw3",
+                "-lopengl32",
+                "-lgdi32"
             ],
             "options": {
-                "cwd": "${fileDirname}"
+                "cwd": "${workspaceFolder}"
             },
             "problemMatcher": [
                 "$gcc"
@@ -22,7 +35,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "detail": "Task generated for MSYS2 UCRT64 Win32 API."
+            "detail": "Generated Task by Debugger."
         }
     ]
 }

@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "g++.exe - Build and debug active file",
+            "name": "C/C++: g++.exe build active file",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}\\vektorwerk.exe",
+            "program": "${workspaceFolder}\\BankingApp.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
