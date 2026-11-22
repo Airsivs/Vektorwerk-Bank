@@ -76,3 +76,4 @@ extern DATA::AccountInfo AccData[5];
 extern DATA::AccountCreation AccInitData[5];
 extern DATA::notif Notification[49];
 extern DATA::log Logification[125];
+extern int LogifNumber;

@@ -12,9 +12,19 @@
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
+#include <ctime>
+#include <iomanip>
 
 using ID = std::string;
 using text = char;
+
+std::string timeLogF() {
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+    std::ostringstream oss;
+    oss << std::put_time(std::localtime(&now_c), "%H:%M:%S"); 
+    return oss.str();
+}
 
 namespace frontend{
 
@@ -332,7 +342,13 @@ void SendMessageInterface(int InitialAccountNumber, DATA::AccountInfo& AI, int A
 
     if(ImGui::Button("SEND")){
         SMIerrorLog = backend::SendMessage(AI.actualName,Recipient,Title,Text);
+        if(SMIerrorLog == 0){
+            std::string LogifText = "SENT MESSAGE (" + AI.actualName + " - " + Recipient + ")";
+            Logification[LogifNumber] = {"STANDARD", timeLogF().c_str(), LogifText.c_str(), LogifNumber, true};
+            LogifNumber += 1;
+        }
     }
+
     ImGui::SameLine();
     if(ImGui::Button("CANCEL")){
         memset(Recipient, 0, sizeof(Recipient));
@@ -550,10 +566,19 @@ void RequestInterface(int InitialAccountNumber, DATA::AccountInfo& AI, int AppWi
 
 void PrintLogification(const DATA::log& log){
 
-    std::string LogText = log.type + log.time + log.text;
+    std::string LogText = log.type + " | [" + log.time + "] | " + log.text;
 
-    ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), LogText.c_str());
+    if(log.type == "ERROR"){
+        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), LogText.c_str());
+    }
 
+    if(log.type == "STANDARD"){
+        ImGui::Text(LogText.c_str());
+    }
+
+    if(log.type == "WARNING"){
+        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), LogText.c_str());
+    }
 }
 
 void LogInterface(int AppWidth, int AppHeight){
@@ -575,6 +600,9 @@ void LogInterface(int AppWidth, int AppHeight){
     for(int i = 0; i <= 125; i++){
         if(backend::LogificationValidation(Logification[i])==1){
             PrintLogification(Logification[i]);
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
         }
     }
 

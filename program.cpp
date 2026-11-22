@@ -8,6 +8,8 @@
 #include <thread>
 #include <cstdint>
 #include <array>
+#include <ctime>
+#include <iomanip>
 
 std::array<int,2> WindowSizeMain {1280,720};
 std::array<int,2> WindowSizeSecondary {720,840};
@@ -15,9 +17,10 @@ DATA::AccountCreation AccInitData[5]{};
 DATA::AccountInfo AccData[5]{};
 DATA::notif Notification[49]{};
 DATA::log Logification[125]{};
+int LogifNumber{0};
 static bool AllowAccountInfoWin{0};
 static bool DisplayActiveAccounts{0};
-static bool DBG_notifExample{1};
+static bool DBG_notifExample{0};
 
 void RunAccountCreation(int AOA) {
     static bool IsOperational{1};
@@ -75,6 +78,14 @@ void DisplayAllAvailableAccounts(int ActiveAccounts){
 
 };
 
+std::string timeLog() {
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+    std::ostringstream oss;
+    oss << std::put_time(std::localtime(&now_c), "%H:%M:%S"); 
+    return oss.str();
+}
+
 int main(){
 
     if(!glfwInit()){return -1;};
@@ -111,7 +122,6 @@ int main(){
     ImGui_ImplGlfw_InitForOpenGL(WindowSecondary, true);
     ImGui_ImplOpenGL3_Init("#version 130");
 
-
     while(!glfwWindowShouldClose(WindowMain) && !glfwWindowShouldClose(WindowSecondary)){
 
         glfwPollEvents();
@@ -130,12 +140,9 @@ int main(){
         }
 
         if(DBG_notifExample==1){
-            Notification[0] = {"Poopie", "Lorem ipsum, fart on my finger", 300, AccData[0].actualName.c_str(), AccData[1].actualName.c_str(), 0, true};
-            Notification[1] = {"Dream", "Lorem ipsum, fart on my finger. I need to extend this text so. Bla bla poop in my mouth tom pearl", 300, AccData[1].actualName.c_str(), AccData[2].actualName.c_str(), 1, true};
-            Notification[2] = {"Cream", "Lorem ipsum, fart on my finger", 300, AccData[2].actualName.c_str(), AccData[3].actualName.c_str(), 2, true};
-            Notification[3] = {"Poopie Max", "Lorem ipsum, fart on my finger", 300, AccData[2].actualName.c_str(), AccData[4].actualName.c_str(), 3, true};
-
-            Logification[1] = {"TYPE", " [TIME]", " | TEXT", 1, true};
+            Logification[1] = {"ERROR", timeLog().c_str(), "UNABLE TO INITIATE EXAMPLE - RESETTING...", 1, true};
+            Logification[2] = {"STANDARD", "09:00", "INITIALIZED SOFTWARE!", 2, true};
+            Logification[3] = {"WARNING", "09:02", "USER APPEARS TO BE RETARDED", 3, true};
         }
 
         DisplayAllAvailableAccounts(AOA);
@@ -145,6 +152,7 @@ int main(){
         glfwGetFramebufferSize(WindowMain, &display_w1, &display_h1);
         glViewport(0, 0, display_w1, display_h1);
         glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
+        
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(WindowMain);
